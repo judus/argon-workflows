@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
-namespace Alix\Workflows;
+namespace Maduser\Argon\Workflows;
 
-use Alix\Workflows\Contracts\SignalInterface;
-use Alix\Workflows\Contracts\StateInterface;
-
+/**
+ * Class WorkflowDefinition
+ * Represents the definition of a workflow including transitions.
+ */
 final readonly class WorkflowDefinition
 {
     /**
@@ -16,5 +17,6 @@ final readonly class WorkflowDefinition
     public function __construct(
         public array $staticTransitions,
         public array $signalTransitions,
-    ) {}
+    ) {
+    }
 }

@@ -2,16 +2,25 @@
 
 declare(strict_types=1);
 
-namespace Alix\Workflows;
+namespace Maduser\Argon\Workflows;
 
-use Alix\Workflows\Contracts\ContextInterface;
-use Alix\Workflows\Contracts\StateInterface;
+use Maduser\Argon\Workflows\Contracts\ContextInterface;
 use RuntimeException;
 
+/**
+ * Class TransitionResolver
+ * Resolves the next state transition based on signals.
+ */
 final readonly class TransitionResolver
 {
     /**
+     * Resolves the next state for the given context and signals.
+     *
+     * @param ContextInterface $context
      * @param array<string, mixed> $signals
+     * @param WorkflowDefinition $workflow
+     * @return string
+     * @throws RuntimeException When no valid transition can be resolved.
      */
     public function resolve(
         ContextInterface $context,

@@ -2,11 +2,15 @@
 
 declare(strict_types=1);
 
-namespace Alix\Workflows;
+namespace Maduser\Argon\Workflows;
 
-use Alix\Workflows\Contracts\ContextInterface;
+use Maduser\Argon\Workflows\Contracts\ContextInterface;
 use Psr\Log\LoggerInterface;
 
+/**
+ * Class WorkflowRunner
+ * Executes workflows by running their handlers in sequence.
+ */
 final readonly class WorkflowRunner
 {
     public function __construct(
@@ -14,8 +18,16 @@ final readonly class WorkflowRunner
         private TransitionResolver $resolver,
         private WorkflowRegistry $workflowRegistry,
         private ?LoggerInterface $logger = null,
-    ) {}
+    ) {
+    }
 
+    /**
+     * Runs the specified workflow and processes transitions.
+     *
+     * @param ContextInterface $context
+     * @param string $workflowId
+     * @return ContextInterface
+     */
     public function run(ContextInterface $context, string $workflowId = 'default'): ContextInterface
     {
         $workflowStart = microtime(true);
@@ -27,7 +39,7 @@ final readonly class WorkflowRunner
             $state = $context->getState();
             $stepStart = microtime(true);
 
-            $this->log("State $state...");
+            $this->log("State {$state}...");
 
             $handler = $this->registry->get($state);
             $result = $handler->handle($context);
@@ -47,6 +59,11 @@ final readonly class WorkflowRunner
         return $context;
     }
 
+    /**
+     * Logs workflow messages.
+     *
+     * @param string $message
+     */
     private function log(string $message): void
     {
         $this->logger?->info("[workflow] $message");

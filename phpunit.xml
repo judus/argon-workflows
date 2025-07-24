@@ -5,16 +5,16 @@
 
     <!-- The default testsuite -->
     <testsuites>
-        <testsuite name="unit">
-            <directory suffix="Test.php">tests/unit/</directory>
-            <directory suffix="Test.php">tests/integration/</directory>
+        <testsuite name="default">
+            <directory suffix="Test.php">tests/Integration</directory>
+            <directory suffix="Test.php">tests/Unit</directory>
         </testsuite>
     </testsuites>
 
     <!-- Coverage configuration (optional) -->
     <coverage processUncoveredFiles="true">
         <include>
-            <directory suffix=".php">src/Container</directory>
+            <directory suffix=".php">src</directory>
         </include>
         <report>
             <clover outputFile="build/logs/clover.xml"/>

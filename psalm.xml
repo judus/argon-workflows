@@ -2,7 +2,6 @@
 <psalm
         errorLevel="1"
         resolveFromConfigFile="true"
-        totallyTyped="true"
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xmlns="https://getpsalm.org/schema/config"
         xsi:schemaLocation="https://getpsalm.org/schema/config vendor/vimeo/psalm/config.xsd"
@@ -29,11 +28,7 @@
                 <directory name="tests"/>
             </errorLevel>
         </PossiblyUnusedMethod>
-        <UnusedBaselineEntry>
-            <errorLevel type="suppress">
-                <directory name="tests"/>
-            </errorLevel>
-        </UnusedBaselineEntry>
+        <!-- Removed the problematic UnusedBaselineEntry -->
         <UnusedClass>
             <errorLevel type="suppress">
                 <directory name="tests"/>
@@ -101,7 +96,6 @@
         </MixedArrayAccess>
         <UnusedParam>
             <errorLevel type="suppress">
-                <directory name="tests/integration/Mocks"/>
             </errorLevel>
         </UnusedParam>
     </issueHandlers>

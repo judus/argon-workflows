@@ -2,10 +2,21 @@
 
 declare(strict_types=1);
 
-namespace Alix\Workflows\Contracts;
+namespace Maduser\Argon\Workflows\Contracts;
 
-use Alix\Workflows\HandlerResult;
+use Maduser\Argon\Workflows\HandlerResult;
 
-interface StateHandlerInterface {
+/**
+ * Interface StateHandlerInterface
+ * Provides a contract for handling states.
+ */
+interface StateHandlerInterface
+{
+    /**
+     * Handles a given context.
+     *
+     * @param ContextInterface $context
+     * @return HandlerResult
+     */
     public function handle(ContextInterface $context): HandlerResult;
 }
