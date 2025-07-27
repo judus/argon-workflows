@@ -12,7 +12,7 @@ use RuntimeException;
  * Class StateHandlerRegistry
  * Manages registration and retrieval of state handlers.
  */
-class StateHandlerRegistry
+final class StateHandlerRegistry
 {
     /** @var array<string, StateHandlerInterface>  */
     private array $handlers = [];

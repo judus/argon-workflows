@@ -14,23 +14,50 @@
         }
     },
     "require": {
-        "php": ">=8.2"
+        "php": ">=8.2",
+        "maduser/argon-database": "^1.0",
+        "maduser/argon-dto": "^1.0",
+        "maduser/argon-collection": "^1.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^9",
-        "vimeo/psalm": "^4",
-        "squizlabs/php_codesniffer": "^3",
-        "slevomat/coding-standard": "^8"
+        "vimeo/psalm": "^6.0",
+        "phpunit/phpunit": "^11.5",
+        "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+        "slevomat/coding-standard": "^8.16",
+        "squizlabs/php_codesniffer": "^3.8"
     },
     "scripts": {
-        "test": "phpunit",
-        "lint": "phpcs",
-        "analyse": "psalm"
+        "test": "vendor/bin/phpunit",
+        "lint": "vendor/bin/phpcs --standard=phpcs.xml",
+        "analyze": "vendor/bin/psalm --output-format=github",
+        "fix": [
+            "vendor/bin/phpcbf --standard=phpcs.xml"
+        ],
+        "coverage": "vendor/bin/phpunit --coverage-html coverage-report && open coverage-report/index.html",
+        "check": [
+            "@test",
+            "@analyze",
+            "@lint"
+        ],
+        "ci": [
+            "@test",
+            "@analyze",
+            "@lint"
+        ],
+        "watch": "find src/ | entr -r composer check",
+        "watch:test": "find src/ | entr -r composer test",
+        "watch:fix": "find src/ | entr -r composer fix"
     },
     "config": {
+        "optimize-autoloader": true,
+        "sort-packages": true,
         "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true,
-            "infection/extension-installer": true
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        },
+        "platform": {
+            "php": "8.2.29"
         }
-    }
+    },
+    "minimum-stability": "stable",
+    "prefer-stable": true
 }

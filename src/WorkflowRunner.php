@@ -49,11 +49,11 @@ final readonly class WorkflowRunner
                 $this->resolver->resolve($context, $result->signals, $workflow)
             );
 
-            $stepDuration = round((microtime(true) - $stepStart) * 1000, 2);
+            $stepDuration = round((microtime(true) - $stepStart) * 1000.0, 2);
             $this->log("State $state finished in {$stepDuration}ms");
         }
 
-        $workflowDuration = round((microtime(true) - $workflowStart) * 1000, 2);
+        $workflowDuration = round((microtime(true) - $workflowStart) * 1000.0, 2);
         $this->log("Workflow finished in {$workflowDuration}ms");
 
         return $context;

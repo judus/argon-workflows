@@ -9,7 +9,7 @@ use Maduser\Argon\Workflows\WorkflowDefinition;
 use Maduser\Argon\Workflows\WorkflowRegistry;
 use PHPUnit\Framework\TestCase;
 
-class WorkflowRegistryTest extends TestCase
+final class WorkflowRegistryTest extends TestCase
 {
     public function testAddThrowsWhenWorkflowAlreadyRegistered(): void
     {

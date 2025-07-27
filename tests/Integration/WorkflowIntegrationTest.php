@@ -12,10 +12,14 @@ use Maduser\Argon\Workflows\TransitionResolver;
 use Maduser\Argon\Workflows\WorkflowDefinition;
 use Maduser\Argon\Workflows\WorkflowRegistry;
 use Maduser\Argon\Workflows\WorkflowRunner;
+use PHPUnit\Framework\MockObject\Exception;
 use PHPUnit\Framework\TestCase;
 
-class WorkflowIntegrationTest extends TestCase
+final class WorkflowIntegrationTest extends TestCase
 {
+    /**
+     * @throws Exception
+     */
     public function testSimpleWorkflowExecution(): void
     {
         $contextMock = $this->createMock(ContextInterface::class);
@@ -29,7 +33,7 @@ class WorkflowIntegrationTest extends TestCase
             ->willReturnOnConsecutiveCalls(false, false, true);
 
         $contextMock->method('withState')
-            ->will($this->returnSelf());
+            ->willReturn($contextMock);
 
         // Handler Mocks
         $startHandler = $this->createMock(StateHandlerInterface::class);

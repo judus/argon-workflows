@@ -28,7 +28,7 @@ final readonly class TransitionResolver
         WorkflowDefinition $workflow
     ): string {
         foreach ($workflow->signalTransitions as $signal => $targetState) {
-            if ($signals[$signal] ?? false) {
+            if (array_key_exists($signal, $signals) && $signals[$signal]) {
                 return $targetState;
             }
         }
