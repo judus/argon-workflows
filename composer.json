@@ -14,10 +14,7 @@
         }
     },
     "require": {
-        "php": ">=8.2",
-        "maduser/argon-database": "^1.0",
-        "maduser/argon-dto": "^1.0",
-        "maduser/argon-collection": "^1.0"
+        "php": ">=8.2"
     },
     "require-dev": {
         "vimeo/psalm": "^6.0",
