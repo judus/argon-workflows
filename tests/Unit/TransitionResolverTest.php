@@ -10,7 +10,7 @@ use Maduser\Argon\Workflows\WorkflowDefinition;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
-class TransitionResolverTest extends TestCase
+final class TransitionResolverTest extends TestCase
 {
     public function testSignalMustBeExplicitlyTruthy(): void
     {

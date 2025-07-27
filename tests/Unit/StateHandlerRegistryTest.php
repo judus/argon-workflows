@@ -9,7 +9,7 @@ use Maduser\Argon\Workflows\Exceptions\WorkflowException;
 use Maduser\Argon\Workflows\StateHandlerRegistry;
 use PHPUnit\Framework\TestCase;
 
-class StateHandlerRegistryTest extends TestCase
+final class StateHandlerRegistryTest extends TestCase
 {
     public function testRegisterThrowsExceptionWhenHandlerAlreadyRegistered(): void
     {
