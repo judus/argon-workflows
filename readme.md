@@ -17,7 +17,7 @@ Define a `ContextInterface` that represents the state of your system and passes 
 
 Each state has a `StateHandlerInterface`, which processes the context and returns a `HandlerResult`, possibly with transition **signals**.
 
-The `WorkflowRunner` coordinates everything by:
+The `WorkflowRunner` coordinates:
 
 * Calling handlers in a loop
 * Transitioning based on signal or static mapping
