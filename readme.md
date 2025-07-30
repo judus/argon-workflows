@@ -29,7 +29,6 @@ The `WorkflowRunner` coordinates everything by:
 
 * Calling handlers in a loop
 * Transitioning based on signal or static mapping
-* Logging optional timing info
 
 ## Example
 
