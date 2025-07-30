@@ -11,14 +11,6 @@
 A minimal workflow runner. Define state handlers and wire them together into workflows.
 **Transitions can be static or triggered by signals emitted from handlers.**
 
-## Highlights
-
-* ✅ Explicit transitions (static or signal-based)
-* ✅ Pure PHP, no external dependencies
-* ✅ Fully testable and decoupled
-* ✅ Immutable contexts
-* ✅ Clean structure, no global state
-
 ## Basic Concept
 
 You define a `ContextInterface` that represents the state of your system and passes through your workflow.
