@@ -87,7 +87,7 @@ Implement:
 
 ## TODO
 
-* Make it container aware (optional)
+* Make `StateHandlerRegistry` container aware (allow passing a PSR-11 compliant DI container)
 
 
 ## License
