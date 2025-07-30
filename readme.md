@@ -85,6 +85,11 @@ Implement:
 * `ContextInterface`: your mutable data object, immutable in use.
 * `StateHandlerInterface`: logic per step/state.
 
+## TODO
+
+* Make it container aware (optional)
+
+
 ## License
 
 MIT License
