@@ -80,7 +80,7 @@ final class Agent
 
 ## Interface Definitions
 
-You implement:
+Implement:
 
 * `ContextInterface`: your mutable data object, immutable in use.
 * `StateHandlerInterface`: logic per step/state.
