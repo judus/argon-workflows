@@ -45,7 +45,7 @@ $finalContext = $runner->run($context);
 
 ## Transition Behavior
 
-If a handler emits a signal (via `HandlerResult::$signals`), that takes precedence over the static transition.
+If a handler "emits" a signal (via `HandlerResult::$signals`), that takes precedence over the static transition.
 
 ```php
 return new HandlerResult(
