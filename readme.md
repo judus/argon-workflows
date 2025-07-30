@@ -13,7 +13,7 @@ A minimal workflow runner. Define state handlers and wire them together into wor
 
 ## Basic Concept
 
-You define a `ContextInterface` that represents the state of your system and passes through your workflow.
+Define a `ContextInterface` that represents the state of your system and passes through your workflow.
 
 Each state has a `StateHandlerInterface`, which processes the context and returns a `HandlerResult`, possibly with transition **signals**.
 
