@@ -27,4 +27,30 @@ final class WorkflowException extends RuntimeException
     {
         return new self("No workflow registered for '$name'");
     }
+
+    public static function forTransitionNotResolvable(string $state): self
+    {
+        return new self("No valid transition for state: {$state}");
+    }
+
+    public static function forInvalidSignalKey(string $type): self
+    {
+        return new self("Signal names must be strings, {$type} given");
+    }
+
+    public static function forInvalidSignalValue(string $signal, string $type): self
+    {
+        return new self("Signal '{$signal}' must resolve to a boolean, {$type} given");
+    }
+
+    public static function forContextTypeMismatch(
+        string $expected,
+        string $actual,
+        string $state
+    ): self {
+        return new self(
+            "Handler for state {$state} returned context of type {$actual}; " .
+            "expected {$expected}"
+        );
+    }
 }

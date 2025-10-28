@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Maduser\Argon\Workflows;
 
 use Maduser\Argon\Workflows\Contracts\ContextInterface;
+use Maduser\Argon\Workflows\Exceptions\WorkflowException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -37,6 +38,7 @@ final readonly class WorkflowRunner
 
         while (!$context->isComplete()) {
             $state = $context->getState();
+            $contextClass = $context::class;
             $stepStart = microtime(true);
 
             $this->log("State {$state}...");
@@ -44,10 +46,26 @@ final readonly class WorkflowRunner
             $handler = $this->registry->get($state);
             $result = $handler->handle($context);
 
-            $context = $result->context;
-            $context = $context->withState(
-                $this->resolver->resolve($context, $result->signals, $workflow)
-            );
+            $nextContext = $result->context;
+
+            if ($nextContext::class !== $contextClass) {
+                throw WorkflowException::forContextTypeMismatch(
+                    $contextClass,
+                    $nextContext::class,
+                    $state
+                );
+            }
+
+            $nextState = $this->resolver->resolve($nextContext, $result->signals, $workflow);
+            $context = $nextContext->withState($nextState);
+
+            if ($context::class !== $contextClass) {
+                throw WorkflowException::forContextTypeMismatch(
+                    $contextClass,
+                    $context::class,
+                    $state
+                );
+            }
 
             $stepDuration = round((microtime(true) - $stepStart) * 1000.0, 2);
             $this->log("State $state finished in {$stepDuration}ms");
