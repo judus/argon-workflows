@@ -12,6 +12,7 @@ use Maduser\Argon\Workflows\Contracts\ExecutionObserverInterface;
  */
 final class NullExecutionObserver implements ExecutionObserverInterface
 {
+    #[\Override]
     public function emit(ExecutionEvent $event): void
     {
         // Intentionally left blank.

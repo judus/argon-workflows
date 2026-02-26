@@ -40,8 +40,7 @@ final readonly class WorkflowRunner
         ContextInterface $context,
         string $workflowId = 'default',
         ?string $runId = null
-    ): ContextInterface
-    {
+    ): ContextInterface {
         $workflowStart = microtime(true);
         $runId = $runId ?? $this->createRunId();
         $this->log("Running workflow: " . $workflowId);
@@ -199,8 +198,7 @@ final readonly class WorkflowRunner
         string $workflowId,
         string $state,
         array $meta = []
-    ): void
-    {
+    ): void {
         $this->observer->emit(new ExecutionEvent(
             $type,
             $runId,

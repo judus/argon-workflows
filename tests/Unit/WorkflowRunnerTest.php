@@ -13,6 +13,8 @@ use Maduser\Argon\Workflows\TransitionResolver;
 use Maduser\Argon\Workflows\WorkflowDefinition;
 use Maduser\Argon\Workflows\WorkflowRegistry;
 use Maduser\Argon\Workflows\WorkflowRunner;
+use Maduser\Argon\Workflows\Tests\Unit\Fixtures\AlienContext;
+use Maduser\Argon\Workflows\Tests\Unit\Fixtures\NativeContext;
 use PHPUnit\Framework\TestCase;
 
 final class WorkflowRunnerTest extends TestCase
@@ -25,6 +27,7 @@ final class WorkflowRunnerTest extends TestCase
         $workflows->add('default', new WorkflowDefinition(['start' => 'done'], []));
 
         $registry->register('start', new class implements StateHandlerInterface {
+            #[\Override]
             public function handle(ContextInterface $context): HandlerResult
             {
                 return new HandlerResult(new AlienContext('mutated'), ['mutated' => true]);
@@ -40,51 +43,5 @@ final class WorkflowRunnerTest extends TestCase
         );
 
         $runner->run(new NativeContext('start'));
-    }
-}
-
-final class NativeContext implements ContextInterface
-{
-    public function __construct(
-        private string $state,
-        private bool $complete = false
-    ) {
-    }
-
-    public function getState(): string
-    {
-        return $this->state;
-    }
-
-    public function isComplete(): bool
-    {
-        return $this->complete;
-    }
-
-    public function withState(string $state): ContextInterface
-    {
-        return new self($state, $state === 'done');
-    }
-}
-
-final class AlienContext implements ContextInterface
-{
-    public function __construct(private string $state)
-    {
-    }
-
-    public function getState(): string
-    {
-        return $this->state;
-    }
-
-    public function isComplete(): bool
-    {
-        return false;
-    }
-
-    public function withState(string $state): ContextInterface
-    {
-        return new self($state);
     }
 }
