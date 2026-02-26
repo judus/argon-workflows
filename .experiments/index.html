@@ -1,0 +1,86 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Argon Workflow Live Demo</title>
+    <style>
+      body {
+        font-family: system-ui, sans-serif;
+        margin: 24px;
+      }
+      .panel {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 24px;
+        align-items: start;
+      }
+      .card {
+        border: 1px solid #e2e2e2;
+        border-radius: 8px;
+        padding: 16px;
+        background: #fff;
+      }
+      svg {
+        width: 100%;
+        height: 240px;
+        border: 1px solid #e2e2e2;
+        border-radius: 8px;
+        background: #fafafa;
+      }
+      .node {
+        fill: #ffffff;
+        stroke: #888;
+        stroke-width: 1.5;
+        rx: 6;
+        ry: 6;
+      }
+      .node.active {
+        stroke: #0a7;
+        stroke-width: 2.5;
+        fill: #e9fff7;
+      }
+      .node.failed {
+        stroke: #c00;
+        stroke-width: 2.5;
+        fill: #ffecec;
+      }
+      .node.done {
+        stroke: #0a7;
+        fill: #f0fff8;
+      }
+      .edge {
+        stroke: #aaa;
+        stroke-width: 2;
+        marker-end: url(#arrow);
+      }
+      #log {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+          "Courier New", monospace;
+        white-space: pre-wrap;
+        border: 1px solid #ddd;
+        padding: 12px;
+        border-radius: 6px;
+        height: 220px;
+        overflow: auto;
+        background: #fafafa;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Argon Workflow Live Demo</h1>
+    <p>Listening for workflow events…</p>
+
+    <div class="panel">
+      <div class="card">
+        <div id="status">Status: idle</div>
+        <svg id="graph" viewBox="0 0 600 220" role="img" aria-label="Workflow graph"></svg>
+      </div>
+      <div class="card">
+        <div id="log"></div>
+      </div>
+    </div>
+
+    <script src="./main.js"></script>
+  </body>
+</html>

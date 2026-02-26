@@ -1,0 +1,82 @@
+{
+    "packages": [
+        {
+            "name": "maduser/argon-workflows",
+            "version": "dev-dev",
+            "version_normalized": "dev-dev",
+            "dist": {
+                "type": "path",
+                "url": "..",
+                "reference": "7799273718a01d50381330da338c2908cc94e957"
+            },
+            "require": {
+                "php": ">=8.2"
+            },
+            "require-dev": {
+                "dealerdirect/phpcodesniffer-composer-installer": "^1.0",
+                "phpunit/phpunit": "^11.5",
+                "slevomat/coding-standard": "^8.16",
+                "squizlabs/php_codesniffer": "^3.8",
+                "vimeo/psalm": "^6.0"
+            },
+            "type": "library",
+            "installation-source": "dist",
+            "autoload": {
+                "psr-4": {
+                    "Maduser\\Argon\\Workflows\\": "src/"
+                }
+            },
+            "autoload-dev": {
+                "psr-4": {
+                    "Maduser\\Argon\\Workflows\\Tests\\": "tests/"
+                }
+            },
+            "scripts": {
+                "test": [
+                    "vendor/bin/phpunit"
+                ],
+                "lint": [
+                    "vendor/bin/phpcs --standard=phpcs.xml"
+                ],
+                "analyze": [
+                    "vendor/bin/psalm --output-format=github"
+                ],
+                "fix": [
+                    "vendor/bin/phpcbf --standard=phpcs.xml"
+                ],
+                "coverage": [
+                    "vendor/bin/phpunit --coverage-html coverage-report && open coverage-report/index.html"
+                ],
+                "check": [
+                    "@test",
+                    "@analyze",
+                    "@lint"
+                ],
+                "ci": [
+                    "@test",
+                    "@analyze",
+                    "@lint"
+                ],
+                "watch": [
+                    "find src/ | entr -r composer check"
+                ],
+                "watch:test": [
+                    "find src/ | entr -r composer test"
+                ],
+                "watch:fix": [
+                    "find src/ | entr -r composer fix"
+                ]
+            },
+            "license": [
+                "MIT"
+            ],
+            "description": "A PHP package for managing workflows",
+            "transport-options": {
+                "relative": true
+            },
+            "install-path": "../maduser/argon-workflows"
+        }
+    ],
+    "dev": true,
+    "dev-package-names": []
+}
