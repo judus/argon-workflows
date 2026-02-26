@@ -45,6 +45,11 @@ final readonly class WorkflowRunner
         $runId = $runId ?? $this->createRunId();
         $this->log("Running workflow: " . $workflowId);
 
+        $workflow = $this->workflowRegistry->get($workflowId);
+        if ($workflow->initialState !== null && $context->getState() !== $workflow->initialState) {
+            $context = $context->withState($workflow->initialState);
+        }
+
         $this->emit(
             ExecutionEvent::TYPE_RUN_STARTED,
             $runId,
@@ -53,10 +58,18 @@ final readonly class WorkflowRunner
         );
 
         try {
-            $workflow = $this->workflowRegistry->get($workflowId);
-
-            while (!$context->isComplete()) {
+            while (true) {
                 $state = $context->getState();
+                $hasWorkflowTerminals = $workflow->hasTerminalStates();
+                $isWorkflowTerminal = $workflow->isTerminalState($state);
+
+                if (
+                    $context->isComplete() &&
+                    (!$hasWorkflowTerminals || !$isWorkflowTerminal)
+                ) {
+                    break;
+                }
+
                 $contextClass = $context::class;
                 $stepStart = microtime(true);
 
@@ -82,21 +95,25 @@ final readonly class WorkflowRunner
                         );
                     }
 
-                    $nextState = $this->resolver->resolve($nextContext, $result->signals, $workflow);
+                    if ($isWorkflowTerminal) {
+                        $context = $nextContext->withState($state);
+                    } else {
+                        $nextState = $this->resolver->resolve($nextContext, $result->signals, $workflow);
 
-                    $this->emit(
-                        ExecutionEvent::TYPE_TRANSITION_TAKEN,
-                        $runId,
-                        $workflowId,
-                        $state,
-                        [
-                            'from' => $state,
-                            'to' => $nextState,
-                            'signals' => $result->signals,
-                        ]
-                    );
+                        $this->emit(
+                            ExecutionEvent::TYPE_TRANSITION_TAKEN,
+                            $runId,
+                            $workflowId,
+                            $state,
+                            [
+                                'from' => $state,
+                                'to' => $nextState,
+                                'signals' => $result->signals,
+                            ]
+                        );
 
-                    $context = $nextContext->withState($nextState);
+                        $context = $nextContext->withState($nextState);
+                    }
 
                     if ($context::class !== $contextClass) {
                         throw WorkflowException::forContextTypeMismatch(
@@ -132,6 +149,10 @@ final readonly class WorkflowRunner
                 );
 
                 $this->log("State $state finished in {$stepDuration}ms");
+
+                if ($isWorkflowTerminal) {
+                    break;
+                }
             }
 
             $workflowDuration = round((microtime(true) - $workflowStart) * 1000.0, 2);

@@ -13,11 +13,25 @@ final readonly class WorkflowDefinition
     /**
      * @param array<string, string> $staticTransitions
      * @param array<string, string> $signalTransitions
+     * @param string|null $initialState Optional declarative initial state.
+     * @param list<string> $terminalStates Optional declarative terminal states.
      */
     public function __construct(
         public array $staticTransitions,
         public array $signalTransitions,
+        public ?string $initialState = null,
+        public array $terminalStates = [],
     ) {
+    }
+
+    public function hasTerminalStates(): bool
+    {
+        return $this->terminalStates !== [];
+    }
+
+    public function isTerminalState(string $state): bool
+    {
+        return in_array($state, $this->terminalStates, true);
     }
 
     /**

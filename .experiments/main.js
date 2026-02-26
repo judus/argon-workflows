@@ -3,9 +3,15 @@ const logEl = document.getElementById("log");
 const graphEl = document.getElementById("graph");
 const GRAPH_MIN_HEIGHT = 220;
 const GRAPH_BOTTOM_MARGIN = 24;
+const NODE_HEIGHT = 60;
+const VIRTUAL_START = "__start";
+const VIRTUAL_END = "__end";
+const VIRTUAL_NODE_RADIUS = 36;
 
 const nodes = {};
 const edges = {};
+let firstRealStep = null;
+let lastRealStep = null;
 
 function log(line) {
   logEl.textContent += line + "\n";
@@ -37,6 +43,10 @@ async function init() {
 
     if (payload.type === "run.started") {
       resetRunVisuals();
+      setDone(VIRTUAL_START);
+      if (firstRealStep) {
+        setEdgeFinished(VIRTUAL_START, firstRealStep);
+      }
     }
 
     if (payload.type === "step.started") {
@@ -52,7 +62,10 @@ async function init() {
     }
 
     if (payload.type === "run.finished") {
-      setDone(payload.state);
+      setDone(VIRTUAL_END);
+      if (lastRealStep) {
+        setEdgeFinished(lastRealStep, VIRTUAL_END);
+      }
       Object.values(edges).forEach((edge) => edge.classList.remove("active"));
     }
 
@@ -120,6 +133,21 @@ function resetRunVisuals() {
   });
 }
 
+function isVirtualNode(id) {
+  return id === VIRTUAL_START || id === VIRTUAL_END;
+}
+
+function getEdgeAnchorY(id, pos, direction) {
+  if (!isVirtualNode(id)) {
+    return direction === "out" ? pos.y + NODE_HEIGHT : pos.y;
+  }
+
+  const centerY = pos.y + NODE_HEIGHT / 2;
+  return direction === "out"
+    ? centerY + VIRTUAL_NODE_RADIUS
+    : centerY - VIRTUAL_NODE_RADIUS;
+}
+
 function updateGraphSize(contentHeight) {
   const top = graphEl.getBoundingClientRect().top;
   const remaining = Math.max(
@@ -156,17 +184,20 @@ async function renderGraph() {
   graphEl.appendChild(defs);
 
   const nodeIds = Object.keys(graph.nodes);
+  firstRealStep = nodeIds[0] ?? null;
+  lastRealStep = nodeIds[nodeIds.length - 1] ?? null;
+  const allNodeIds = [VIRTUAL_START, ...nodeIds, VIRTUAL_END];
   const width = 360;
   const nodeWidth = 180;
-  const nodeHeight = 60;
+  const nodeHeight = NODE_HEIGHT;
   const topPadding = 20;
   const bottomPadding = 20;
   const verticalGap = 36;
   const height =
     topPadding +
     bottomPadding +
-    nodeIds.length * nodeHeight +
-    Math.max(0, nodeIds.length - 1) * verticalGap;
+    allNodeIds.length * nodeHeight +
+    Math.max(0, allNodeIds.length - 1) * verticalGap;
 
   graphEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
   updateGraphSize(height);
@@ -176,13 +207,22 @@ async function renderGraph() {
   });
 
   const positions = {};
-  nodeIds.forEach((id, idx) => {
+  allNodeIds.forEach((id, idx) => {
     const x = (width - nodeWidth) / 2;
     const y = topPadding + idx * (nodeHeight + verticalGap);
     positions[id] = { x, y };
   });
 
-  Object.values(graph.edges).forEach((edge) => {
+  const renderEdges = [];
+  if (firstRealStep) {
+    renderEdges.push({ from: VIRTUAL_START, to: firstRealStep });
+  }
+  Object.values(graph.edges).forEach((edge) => renderEdges.push(edge));
+  if (lastRealStep) {
+    renderEdges.push({ from: lastRealStep, to: VIRTUAL_END });
+  }
+
+  renderEdges.forEach((edge) => {
     if (edge.from === "*" || !positions[edge.from] || !positions[edge.to]) {
       return;
     }
@@ -191,40 +231,57 @@ async function renderGraph() {
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.classList.add("edge");
     line.setAttribute("x1", String(from.x + nodeWidth / 2));
-    line.setAttribute("y1", String(from.y + nodeHeight));
+    line.setAttribute("y1", String(getEdgeAnchorY(edge.from, from, "out")));
     line.setAttribute("x2", String(to.x + nodeWidth / 2));
-    line.setAttribute("y2", String(to.y));
+    line.setAttribute("y2", String(getEdgeAnchorY(edge.to, to, "in")));
     graphEl.appendChild(line);
     edges[`${edge.from}->${edge.to}`] = line;
   });
 
-  nodeIds.forEach((id) => {
+  allNodeIds.forEach((id) => {
     const pos = positions[id];
-    const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
-    rect.classList.add("node");
-    rect.setAttribute("id", `node-${id}`);
-    rect.setAttribute("x", String(pos.x));
-    rect.setAttribute("y", String(pos.y));
-    rect.setAttribute("width", String(nodeWidth));
-    rect.setAttribute("height", String(nodeHeight));
-    graphEl.appendChild(rect);
+    const isVirtual = id === VIRTUAL_START || id === VIRTUAL_END;
+    let shape;
+
+    if (isVirtual) {
+      const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      circle.classList.add("node", "virtual");
+      circle.setAttribute("id", `node-${id}`);
+      circle.setAttribute("cx", String(pos.x + nodeWidth / 2));
+      circle.setAttribute("cy", String(pos.y + nodeHeight / 2));
+      circle.setAttribute("r", String(VIRTUAL_NODE_RADIUS));
+      graphEl.appendChild(circle);
+      shape = circle;
+    } else {
+      const rect = document.createElementNS("http://www.w3.org/2000/svg", "rect");
+      rect.classList.add("node");
+      rect.setAttribute("id", `node-${id}`);
+      rect.setAttribute("x", String(pos.x));
+      rect.setAttribute("y", String(pos.y));
+      rect.setAttribute("width", String(nodeWidth));
+      rect.setAttribute("height", String(nodeHeight));
+      graphEl.appendChild(rect);
+      shape = rect;
+    }
 
     const text = document.createElementNS("http://www.w3.org/2000/svg", "text");
     text.setAttribute("x", String(pos.x + nodeWidth / 2));
     text.setAttribute("y", String(pos.y + nodeHeight / 2 + 5));
     text.setAttribute("text-anchor", "middle");
-    text.textContent = formatNodeLabel(graph.nodes[id].label ?? id);
+    text.textContent = formatNodeLabel(graph.nodes[id]?.label ?? id);
     graphEl.appendChild(text);
 
-    nodes[id] = rect;
+    nodes[id] = shape;
   });
 }
 
 function formatNodeLabel(raw) {
-  if (raw === "__end") {
+  if (raw === VIRTUAL_START) {
+    return "START";
+  }
+  if (raw === VIRTUAL_END) {
     return "END";
   }
-
   return raw
     .replaceAll("_", " ")
     .replace(/\b\w/g, (c) => c.toUpperCase());

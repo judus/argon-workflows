@@ -142,4 +142,92 @@ final class WorkflowRunnerEventsTest extends TestCase
         $this->assertSame('run-123', $observer->events[0]->runId);
         $this->assertSame('run-123', $observer->events[1]->runId);
     }
+
+    public function testTerminalStatesAllowFinishingWithoutSyntheticEndTransition(): void
+    {
+        $registry = new StateHandlerRegistry();
+        $resolver = new TransitionResolver();
+        $workflows = new WorkflowRegistry();
+        $workflows->add('default', new WorkflowDefinition(
+            ['start' => 'process', 'process' => 'final'],
+            [],
+            null,
+            ['final']
+        ));
+
+        $registry->register('start', new class implements StateHandlerInterface {
+            #[\Override]
+            public function handle(ContextInterface $context): HandlerResult
+            {
+                return new HandlerResult($context, []);
+            }
+        });
+
+        $registry->register('process', new class implements StateHandlerInterface {
+            #[\Override]
+            public function handle(ContextInterface $context): HandlerResult
+            {
+                return new HandlerResult($context, []);
+            }
+        });
+
+        $registry->register('final', new class implements StateHandlerInterface {
+            #[\Override]
+            public function handle(ContextInterface $context): HandlerResult
+            {
+                return new HandlerResult($context, []);
+            }
+        });
+
+        $context = new class('start') implements ContextInterface {
+            public function __construct(private string $state)
+            {
+            }
+
+            #[\Override]
+            public function getState(): string
+            {
+                return $this->state;
+            }
+
+            #[\Override]
+            public function isComplete(): bool
+            {
+                return false;
+            }
+
+            #[\Override]
+            public function withState(string $state): ContextInterface
+            {
+                return new self($state);
+            }
+        };
+
+        $observer = new EventCollector();
+        $runner = new WorkflowRunner($registry, $resolver, $workflows, null, $observer);
+
+        $result = $runner->run($context);
+        $this->assertSame('final', $result->getState());
+
+        $types = array_map(
+            static fn (ExecutionEvent $event): string => $event->type,
+            $observer->events
+        );
+
+        $this->assertSame(
+            [
+                ExecutionEvent::TYPE_RUN_STARTED,
+                ExecutionEvent::TYPE_STEP_STARTED,
+                ExecutionEvent::TYPE_TRANSITION_TAKEN,
+                ExecutionEvent::TYPE_STEP_FINISHED,
+                ExecutionEvent::TYPE_STEP_STARTED,
+                ExecutionEvent::TYPE_TRANSITION_TAKEN,
+                ExecutionEvent::TYPE_STEP_FINISHED,
+                ExecutionEvent::TYPE_STEP_STARTED,
+                ExecutionEvent::TYPE_STEP_FINISHED,
+                ExecutionEvent::TYPE_RUN_FINISHED,
+            ],
+            $types
+        );
+    }
 }

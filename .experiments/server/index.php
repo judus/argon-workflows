@@ -46,12 +46,13 @@ $registry->register('forward_attachments', new class implements StateHandlerInte
 });
 
 $workflow = new WorkflowDefinition(
-    [
+    staticTransitions: [
         'fetch_email' => 'ask_llm',
         'ask_llm' => 'forward_attachments',
-        'forward_attachments' => '__end',
     ],
-    []
+    signalTransitions: [],
+    initialState: 'fetch_email',
+    terminalStates: ['forward_attachments']
 );
 $workflows = new WorkflowRegistry();
 $workflows->add($workflowId, $workflow);
@@ -84,7 +85,7 @@ $runner = new WorkflowRunner(
     $observer
 );
 
-$context = new class('fetch_email') implements ContextInterface {
+$context = new class('boot') implements ContextInterface {
     public function __construct(private string $state)
     {
     }
@@ -96,7 +97,8 @@ $context = new class('fetch_email') implements ContextInterface {
 
     public function isComplete(): bool
     {
-        return $this->state === '__end';
+        // WorkflowDefinition terminalStates drives completion in this demo.
+        return false;
     }
 
     public function withState(string $state): ContextInterface
