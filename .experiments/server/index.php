@@ -20,23 +20,24 @@ header('Cache-Control: no-cache');
 header('Connection: keep-alive');
 
 $runId = $_GET['runId'] ?? 'demo-run';
+$workflowId = 'email-pipeline';
 
 $registry = new StateHandlerRegistry();
-$registry->register('start', new class implements StateHandlerInterface {
+$registry->register('fetch_email', new class implements StateHandlerInterface {
     public function handle(ContextInterface $context): HandlerResult
     {
         usleep(300_000);
         return new HandlerResult($context);
     }
 });
-$registry->register('process', new class implements StateHandlerInterface {
+$registry->register('ask_llm', new class implements StateHandlerInterface {
     public function handle(ContextInterface $context): HandlerResult
     {
         usleep(500_000);
         return new HandlerResult($context);
     }
 });
-$registry->register('done', new class implements StateHandlerInterface {
+$registry->register('forward_attachments', new class implements StateHandlerInterface {
     public function handle(ContextInterface $context): HandlerResult
     {
         usleep(200_000);
@@ -45,11 +46,15 @@ $registry->register('done', new class implements StateHandlerInterface {
 });
 
 $workflow = new WorkflowDefinition(
-    ['start' => 'process', 'process' => 'done'],
+    [
+        'fetch_email' => 'ask_llm',
+        'ask_llm' => 'forward_attachments',
+        'forward_attachments' => '__end',
+    ],
     []
 );
 $workflows = new WorkflowRegistry();
-$workflows->add('default', $workflow);
+$workflows->add($workflowId, $workflow);
 
 $observer = new class implements ExecutionObserverInterface {
     public function emit(ExecutionEvent $event): void
@@ -79,7 +84,7 @@ $runner = new WorkflowRunner(
     $observer
 );
 
-$context = new class('start') implements ContextInterface {
+$context = new class('fetch_email') implements ContextInterface {
     public function __construct(private string $state)
     {
     }
@@ -91,7 +96,7 @@ $context = new class('start') implements ContextInterface {
 
     public function isComplete(): bool
     {
-        return $this->state === 'done';
+        return $this->state === '__end';
     }
 
     public function withState(string $state): ContextInterface
@@ -100,4 +105,4 @@ $context = new class('start') implements ContextInterface {
     }
 };
 
-$runner->run($context, 'default', $runId);
+$runner->run($context, $workflowId, $runId);

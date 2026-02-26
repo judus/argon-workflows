@@ -1,24 +1,24 @@
 const statusEl = document.getElementById("status");
 const logEl = document.getElementById("log");
 const graphEl = document.getElementById("graph");
+const GRAPH_MIN_HEIGHT = 220;
+const GRAPH_BOTTOM_MARGIN = 24;
 
 const nodes = {};
+const edges = {};
 
 function log(line) {
   logEl.textContent += line + "\n";
   logEl.scrollTop = logEl.scrollHeight;
 }
 
-// Quick-and-dirty placeholder: swap for your SSE endpoint later.
-// Example: `/api/workflow-runs/${runId}/stream`
-const url = "/server/index.php?runId=demo-run";
-const graphUrl = "/server/graph.php";
+const url = "/api/stream?runId=demo-run";
+const graphUrl = "/api/graph";
 
-renderGraph();
+async function init() {
+  await renderGraph();
+  statusEl.textContent = `Status: connecting to ${url}`;
 
-statusEl.textContent = `Status: connecting to ${url}`;
-
-try {
   const es = new EventSource(url);
 
   es.addEventListener("open", () => {
@@ -31,7 +31,13 @@ try {
 
   es.addEventListener("workflow", (event) => {
     const payload = JSON.parse(event.data);
-    log(`[${payload.type}] ${payload.state} (run=${payload.runId})`);
+    const isRunEvent = payload.type.startsWith("run.");
+    const label = isRunEvent ? payload.workflowId : payload.state;
+    log(`[${payload.type}] ${label} (run=${payload.runId})`);
+
+    if (payload.type === "run.started") {
+      resetRunVisuals();
+    }
 
     if (payload.type === "step.started") {
       setActive(payload.state);
@@ -41,18 +47,35 @@ try {
       setFailed(payload.state);
     }
 
-    if (payload.type === "run.finished") {
+    if (payload.type === "step.finished") {
       setDone(payload.state);
     }
+
+    if (payload.type === "run.finished") {
+      setDone(payload.state);
+      Object.values(edges).forEach((edge) => edge.classList.remove("active"));
+    }
+
+    if (payload.type === "transition.taken") {
+      const from = payload.meta?.from;
+      const to = payload.meta?.to;
+
+      if (from && to) {
+        setEdgeFinished(from, to);
+        setEdgeActive(from, to);
+      }
+    }
   });
-} catch (err) {
+}
+
+init().catch((err) => {
   statusEl.textContent = "Status: EventSource not supported";
   log(String(err));
-}
+});
 
 function clearStates() {
   Object.values(nodes).forEach((node) => {
-    node.classList.remove("active", "failed", "done");
+    node.classList.remove("active", "failed");
   });
 }
 
@@ -68,7 +91,48 @@ function setFailed(state) {
 
 function setDone(state) {
   clearStates();
-  nodes[state]?.classList.add("done");
+  const node = nodes[state];
+  if (!node) {
+    return;
+  }
+  node.classList.remove("active", "failed");
+  node.classList.add("done");
+}
+
+function setEdgeActive(from, to) {
+  Object.values(edges).forEach((edge) => edge.classList.remove("active"));
+  const key = `${from}->${to}`;
+  edges[key]?.classList.add("active");
+}
+
+function setEdgeFinished(from, to) {
+  const key = `${from}->${to}`;
+  edges[key]?.classList.add("finished");
+}
+
+function resetRunVisuals() {
+  Object.values(nodes).forEach((node) => {
+    node.classList.remove("active", "failed", "done");
+  });
+
+  Object.values(edges).forEach((edge) => {
+    edge.classList.remove("active", "finished");
+  });
+}
+
+function updateGraphSize(contentHeight) {
+  const top = graphEl.getBoundingClientRect().top;
+  const remaining = Math.max(
+    GRAPH_MIN_HEIGHT,
+    window.innerHeight - top - GRAPH_BOTTOM_MARGIN,
+  );
+  const targetHeight = Math.max(
+    GRAPH_MIN_HEIGHT,
+    Math.min(contentHeight, remaining),
+  );
+
+  graphEl.style.maxHeight = `${remaining}px`;
+  graphEl.style.height = `${targetHeight}px`;
 }
 
 async function renderGraph() {
@@ -80,27 +144,41 @@ async function renderGraph() {
   marker.setAttribute("id", "arrow");
   marker.setAttribute("markerWidth", "10");
   marker.setAttribute("markerHeight", "7");
+  marker.setAttribute("markerUnits", "userSpaceOnUse");
   marker.setAttribute("refX", "10");
   marker.setAttribute("refY", "3.5");
   marker.setAttribute("orient", "auto");
   const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
   polygon.setAttribute("points", "0 0, 10 3.5, 0 7");
-  polygon.setAttribute("fill", "#aaa");
+  polygon.setAttribute("fill", "context-stroke");
   marker.appendChild(polygon);
   defs.appendChild(marker);
   graphEl.appendChild(defs);
 
   const nodeIds = Object.keys(graph.nodes);
-  const width = 600;
-  const height = 220;
-  const nodeWidth = 110;
+  const width = 360;
+  const nodeWidth = 180;
   const nodeHeight = 60;
-  const gap = nodeIds.length > 1 ? (width - nodeWidth) / (nodeIds.length - 1) : 0;
-  const y = (height - nodeHeight) / 2;
+  const topPadding = 20;
+  const bottomPadding = 20;
+  const verticalGap = 36;
+  const height =
+    topPadding +
+    bottomPadding +
+    nodeIds.length * nodeHeight +
+    Math.max(0, nodeIds.length - 1) * verticalGap;
+
+  graphEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
+  updateGraphSize(height);
+
+  window.addEventListener("resize", () => {
+    updateGraphSize(height);
+  });
 
   const positions = {};
   nodeIds.forEach((id, idx) => {
-    const x = idx * gap;
+    const x = (width - nodeWidth) / 2;
+    const y = topPadding + idx * (nodeHeight + verticalGap);
     positions[id] = { x, y };
   });
 
@@ -112,11 +190,12 @@ async function renderGraph() {
     const to = positions[edge.to];
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.classList.add("edge");
-    line.setAttribute("x1", String(from.x + nodeWidth));
-    line.setAttribute("y1", String(from.y + nodeHeight / 2));
-    line.setAttribute("x2", String(to.x));
-    line.setAttribute("y2", String(to.y + nodeHeight / 2));
+    line.setAttribute("x1", String(from.x + nodeWidth / 2));
+    line.setAttribute("y1", String(from.y + nodeHeight));
+    line.setAttribute("x2", String(to.x + nodeWidth / 2));
+    line.setAttribute("y2", String(to.y));
     graphEl.appendChild(line);
+    edges[`${edge.from}->${edge.to}`] = line;
   });
 
   nodeIds.forEach((id) => {
@@ -134,9 +213,19 @@ async function renderGraph() {
     text.setAttribute("x", String(pos.x + nodeWidth / 2));
     text.setAttribute("y", String(pos.y + nodeHeight / 2 + 5));
     text.setAttribute("text-anchor", "middle");
-    text.textContent = graph.nodes[id].label ?? id;
+    text.textContent = formatNodeLabel(graph.nodes[id].label ?? id);
     graphEl.appendChild(text);
 
     nodes[id] = rect;
   });
+}
+
+function formatNodeLabel(raw) {
+  if (raw === "__end") {
+    return "END";
+  }
+
+  return raw
+    .replaceAll("_", " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase());
 }
