@@ -4,9 +4,11 @@ const graphEl = document.getElementById("graph");
 const GRAPH_MIN_HEIGHT = 220;
 const GRAPH_BOTTOM_MARGIN = 24;
 const NODE_HEIGHT = 60;
-const VIRTUAL_START = "__start";
-const VIRTUAL_END = "__end";
-const VIRTUAL_NODE_RADIUS = 36;
+const VIRTUAL_START = "__virtual_start";
+const VIRTUAL_END = "__virtual_end";
+const VIRTUAL_NODE_RADIUS = NODE_HEIGHT / 2;
+const ARROW_SIZE = 6;
+const VIRTUAL_GAP = 36;
 
 const nodes = {};
 const edges = {};
@@ -24,6 +26,7 @@ const graphUrl = "/api/graph";
 async function init() {
   await renderGraph();
   statusEl.textContent = `Status: connecting to ${url}`;
+  setActive(VIRTUAL_START);
 
   const es = new EventSource(url);
 
@@ -170,14 +173,18 @@ async function renderGraph() {
   const defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
   const marker = document.createElementNS("http://www.w3.org/2000/svg", "marker");
   marker.setAttribute("id", "arrow");
-  marker.setAttribute("markerWidth", "10");
-  marker.setAttribute("markerHeight", "7");
+  marker.setAttribute("markerWidth", String(ARROW_SIZE));
+  marker.setAttribute("markerHeight", String(ARROW_SIZE));
   marker.setAttribute("markerUnits", "userSpaceOnUse");
-  marker.setAttribute("refX", "10");
-  marker.setAttribute("refY", "3.5");
+  marker.setAttribute("refX", "0");
+  marker.setAttribute("refY", String(ARROW_SIZE / 2));
+  marker.setAttribute("viewBox", `0 0 ${ARROW_SIZE} ${ARROW_SIZE}`);
   marker.setAttribute("orient", "auto");
   const polygon = document.createElementNS("http://www.w3.org/2000/svg", "polygon");
-  polygon.setAttribute("points", "0 0, 10 3.5, 0 7");
+  polygon.setAttribute(
+    "points",
+    `0 0, ${ARROW_SIZE} ${ARROW_SIZE / 2}, 0 ${ARROW_SIZE}`,
+  );
   polygon.setAttribute("fill", "context-stroke");
   marker.appendChild(polygon);
   defs.appendChild(marker);
@@ -193,11 +200,14 @@ async function renderGraph() {
   const topPadding = 20;
   const bottomPadding = 20;
   const verticalGap = 36;
-  const height =
-    topPadding +
-    bottomPadding +
-    allNodeIds.length * nodeHeight +
-    Math.max(0, allNodeIds.length - 1) * verticalGap;
+  let height = topPadding + bottomPadding + allNodeIds.length * nodeHeight;
+  for (let i = 0; i < allNodeIds.length - 1; i += 1) {
+    const current = allNodeIds[i];
+    const next = allNodeIds[i + 1];
+    const gap =
+      current === VIRTUAL_START || next === VIRTUAL_END ? VIRTUAL_GAP : verticalGap;
+    height += gap;
+  }
 
   graphEl.setAttribute("viewBox", `0 0 ${width} ${height}`);
   updateGraphSize(height);
@@ -207,10 +217,16 @@ async function renderGraph() {
   });
 
   const positions = {};
+  let cursorY = topPadding;
   allNodeIds.forEach((id, idx) => {
     const x = (width - nodeWidth) / 2;
-    const y = topPadding + idx * (nodeHeight + verticalGap);
-    positions[id] = { x, y };
+    positions[id] = { x, y: cursorY };
+    const next = allNodeIds[idx + 1];
+    if (next) {
+      const gap =
+        id === VIRTUAL_START || next === VIRTUAL_END ? VIRTUAL_GAP : verticalGap;
+      cursorY += nodeHeight + gap;
+    }
   });
 
   const renderEdges = [];
@@ -228,12 +244,17 @@ async function renderGraph() {
     }
     const from = positions[edge.from];
     const to = positions[edge.to];
+    const startY = getEdgeAnchorY(edge.from, from, "out");
+    const endY = getEdgeAnchorY(edge.to, to, "in");
+    const direction = Math.sign(endY - startY);
+    const adjustedEndY =
+      direction === 0 ? endY : endY - direction * ARROW_SIZE;
     const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
     line.classList.add("edge");
     line.setAttribute("x1", String(from.x + nodeWidth / 2));
-    line.setAttribute("y1", String(getEdgeAnchorY(edge.from, from, "out")));
+    line.setAttribute("y1", String(startY));
     line.setAttribute("x2", String(to.x + nodeWidth / 2));
-    line.setAttribute("y2", String(getEdgeAnchorY(edge.to, to, "in")));
+    line.setAttribute("y2", String(adjustedEndY));
     graphEl.appendChild(line);
     edges[`${edge.from}->${edge.to}`] = line;
   });
