@@ -43,6 +43,24 @@ $runner = new WorkflowRunner($registry, new TransitionResolver(), $workflows);
 $finalContext = $runner->run($context);
 ```
 
+## Execution Events
+
+The runner can emit execution events (run/step/transition) via an observer.
+Provide your own `runId` when you want to correlate runs with external systems (queues, UIs, logs).
+
+```php
+$observer = new MyExecutionObserver();
+$runner = new WorkflowRunner(
+    $registry,
+    new TransitionResolver(),
+    $workflows,
+    null,
+    $observer
+);
+
+$finalContext = $runner->run($context, 'default', runId: 'job-123');
+```
+
 ## Transition Behavior
 
 If a handler "emits" a signal (via `HandlerResult::$signals`), that takes precedence over the static transition.
@@ -55,6 +73,16 @@ return new HandlerResult(
 ```
 
 If no signals match, the runner falls back to the static transition based on current state.
+
+## Graph Export
+
+You can export a workflow definition as a graph (nodes + edges) to visualize it in a UI.
+
+```php
+$graph = $workflow->toGraph();
+```
+
+Signal transitions are global in the current model, so they use `from = '*'` in the graph.
 
 ## Integration Example
 
@@ -70,7 +98,7 @@ final class Agent
     public function run(string $agentId, string $input): LLMResponse
     {
         $context = new AgentContext(agentId: $agentId, input: $input);
-        $result = $this->workflowRunner->run($context, $context->agentId);
+        $result = $this->workflowRunner->run($context, 'default', runId: $context->agentId);
 
         return $result->getFinalResponse()
             ?? throw new RuntimeException('Agent completed but returned no response.');
@@ -88,9 +116,12 @@ Implement:
 ## TODO
 
 * Make `StateHandlerRegistry` container aware (allow passing a PSR-11 compliant DI container)
+* Decide whether observer errors should fail workflow execution or be swallowed
+* Consider how to expose a start node in graph exports when no static transition includes it
+* Clarify UI handling for global signal edges (`from = '*'`)
+* Decide whether to validate `runId` inputs (empty/uniqueness) in core or leave to telemetry
 
 
 ## License
 
 MIT License
-

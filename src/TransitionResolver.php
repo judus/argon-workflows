@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace Maduser\Argon\Workflows;
 
 use Maduser\Argon\Workflows\Contracts\ContextInterface;
-use RuntimeException;
+use Maduser\Argon\Workflows\Exceptions\WorkflowException;
 
 /**
  * Class TransitionResolver
@@ -17,25 +17,25 @@ final readonly class TransitionResolver
      * Resolves the next state for the given context and signals.
      *
      * @param ContextInterface $context
-     * @param array<string, mixed> $signals
+     * @param array<string, bool> $signals
      * @param WorkflowDefinition $workflow
      * @return string
-     * @throws RuntimeException When no valid transition can be resolved.
+     * @throws WorkflowException When no valid transition can be resolved.
      */
     public function resolve(
         ContextInterface $context,
         array $signals,
         WorkflowDefinition $workflow
     ): string {
+        $currentState = $context->getState();
+
         foreach ($workflow->signalTransitions as $signal => $targetState) {
-            if (array_key_exists($signal, $signals) && $signals[$signal]) {
+            if (($signals[$signal] ?? false) === true) {
                 return $targetState;
             }
         }
 
-        return $workflow->staticTransitions[$context->getState()] ??
-            throw new RuntimeException(
-                "No valid transition for state: {$context->getState()}"
-            );
+        return $workflow->staticTransitions[$currentState] ??
+            throw WorkflowException::forTransitionNotResolvable($currentState);
     }
 }

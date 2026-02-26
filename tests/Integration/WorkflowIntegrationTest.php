@@ -12,43 +12,39 @@ use Maduser\Argon\Workflows\TransitionResolver;
 use Maduser\Argon\Workflows\WorkflowDefinition;
 use Maduser\Argon\Workflows\WorkflowRegistry;
 use Maduser\Argon\Workflows\WorkflowRunner;
-use PHPUnit\Framework\MockObject\Exception;
+use Maduser\Argon\Workflows\Tests\Integration\Fixtures\TestContext;
 use PHPUnit\Framework\TestCase;
 
 final class WorkflowIntegrationTest extends TestCase
 {
-    /**
-     * @throws Exception
-     */
     public function testSimpleWorkflowExecution(): void
     {
-        $contextMock = $this->createMock(ContextInterface::class);
+        $context = new TestContext('start', ['complete']);
 
-        // Arrange mock behavior with assurance against null fall-through
-        $contextMock->method('getState')
-            ->willReturnOnConsecutiveCalls('start', 'process', 'complete', 'complete');
+        $startHandler = new class implements StateHandlerInterface {
+            #[\Override]
+            public function handle(ContextInterface $context): HandlerResult
+            {
+                return new HandlerResult($context, ['processSignal' => true]);
+            }
+        };
 
-        // Let isComplete return as expected over multiple calls
-        $contextMock->method('isComplete')
-            ->willReturnOnConsecutiveCalls(false, false, true);
+        $processHandler = new class implements StateHandlerInterface {
+            #[\Override]
+            public function handle(ContextInterface $context): HandlerResult
+            {
+                return new HandlerResult($context, []);
+            }
+        };
 
-        $contextMock->method('withState')
-            ->willReturn($contextMock);
+        $completeHandler = new class implements StateHandlerInterface {
+            #[\Override]
+            public function handle(ContextInterface $context): HandlerResult
+            {
+                return new HandlerResult($context, []);
+            }
+        };
 
-        // Handler Mocks
-        $startHandler = $this->createMock(StateHandlerInterface::class);
-        $startHandler->method('handle')
-            ->willReturn(new HandlerResult($contextMock, ['processSignal' => true]));
-
-        $processHandler = $this->createMock(StateHandlerInterface::class);
-        $processHandler->method('handle')
-            ->willReturn(new HandlerResult($contextMock, []));
-
-        $completeHandler = $this->createMock(StateHandlerInterface::class);
-        $completeHandler->method('handle')
-            ->willReturn(new HandlerResult($contextMock, []));
-
-        // Registry with handlers
         $stateHandlerRegistry = new StateHandlerRegistry();
         $stateHandlerRegistry->register('start', $startHandler);
         $stateHandlerRegistry->register('process', $processHandler);
@@ -74,7 +70,7 @@ final class WorkflowIntegrationTest extends TestCase
         );
 
         // Verify the integration by running the workflow
-        $actualContext = $runner->run($contextMock, 'simpleWorkflow');
+        $actualContext = $runner->run($context, 'simpleWorkflow');
 
         // Assert final context state
         $this->assertEquals('complete', $actualContext->getState());
