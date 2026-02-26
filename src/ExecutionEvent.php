@@ -7,6 +7,8 @@ namespace Maduser\Argon\Workflows;
 /**
  * Class ExecutionEvent
  * Represents a workflow execution event.
+ *
+ * @psalm-suppress PossiblyUnusedProperty
  */
 final readonly class ExecutionEvent
 {

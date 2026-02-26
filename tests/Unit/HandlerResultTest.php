@@ -18,6 +18,7 @@ final class HandlerResultTest extends TestCase
         $this->expectException(WorkflowException::class);
         $this->expectExceptionMessage('Signal names must be strings, int given');
 
+        /** @psalm-suppress InvalidArgument */
         new HandlerResult($context, [0 => true]);
     }
 
@@ -28,6 +29,7 @@ final class HandlerResultTest extends TestCase
         $this->expectException(WorkflowException::class);
         $this->expectExceptionMessage("Signal 'invalid' must resolve to a boolean, string given");
 
+        /** @psalm-suppress InvalidArgument */
         new HandlerResult($context, ['invalid' => 'yes']);
     }
 

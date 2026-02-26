@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Maduser\Argon\Workflows\Tests\Unit;
 
 use Maduser\Argon\Workflows\Contracts\ContextInterface;
-use Maduser\Argon\Workflows\Contracts\ExecutionObserverInterface;
 use Maduser\Argon\Workflows\Contracts\StateHandlerInterface;
 use Maduser\Argon\Workflows\ExecutionEvent;
 use Maduser\Argon\Workflows\HandlerResult;
@@ -14,6 +13,8 @@ use Maduser\Argon\Workflows\TransitionResolver;
 use Maduser\Argon\Workflows\WorkflowDefinition;
 use Maduser\Argon\Workflows\WorkflowRegistry;
 use Maduser\Argon\Workflows\WorkflowRunner;
+use Maduser\Argon\Workflows\Tests\Unit\Fixtures\EventCollector;
+use Maduser\Argon\Workflows\Tests\Unit\Fixtures\EventContext;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
@@ -27,6 +28,7 @@ final class WorkflowRunnerEventsTest extends TestCase
         $workflows->add('default', new WorkflowDefinition(['start' => 'done'], []));
 
         $registry->register('start', new class implements StateHandlerInterface {
+            #[\Override]
             public function handle(ContextInterface $context): HandlerResult
             {
                 return new HandlerResult($context, []);
@@ -76,6 +78,7 @@ final class WorkflowRunnerEventsTest extends TestCase
         $workflows->add('default', new WorkflowDefinition(['start' => 'done'], []));
 
         $registry->register('start', new class implements StateHandlerInterface {
+            #[\Override]
             public function handle(ContextInterface $context): HandlerResult
             {
                 throw new RuntimeException('boom');
@@ -109,7 +112,9 @@ final class WorkflowRunnerEventsTest extends TestCase
             $types
         );
 
-        $errorMeta = $observer->events[2]->meta['error'];
+        $errorMeta = $observer->events[2]->meta['error'] ?? null;
+        $this->assertIsArray($errorMeta);
+        /** @var array{type: string, message: string} $errorMeta */
         $this->assertSame(RuntimeException::class, $errorMeta['type']);
         $this->assertSame('boom', $errorMeta['message']);
     }
@@ -122,6 +127,7 @@ final class WorkflowRunnerEventsTest extends TestCase
         $workflows->add('default', new WorkflowDefinition(['start' => 'done'], []));
 
         $registry->register('start', new class implements StateHandlerInterface {
+            #[\Override]
             public function handle(ContextInterface $context): HandlerResult
             {
                 return new HandlerResult($context, []);
@@ -135,38 +141,5 @@ final class WorkflowRunnerEventsTest extends TestCase
 
         $this->assertSame('run-123', $observer->events[0]->runId);
         $this->assertSame('run-123', $observer->events[1]->runId);
-    }
-}
-
-final class EventCollector implements ExecutionObserverInterface
-{
-    /** @var list<ExecutionEvent> */
-    public array $events = [];
-
-    public function emit(ExecutionEvent $event): void
-    {
-        $this->events[] = $event;
-    }
-}
-
-final class EventContext implements ContextInterface
-{
-    public function __construct(private string $state)
-    {
-    }
-
-    public function getState(): string
-    {
-        return $this->state;
-    }
-
-    public function isComplete(): bool
-    {
-        return $this->state === 'done';
-    }
-
-    public function withState(string $state): ContextInterface
-    {
-        return new self($state);
     }
 }

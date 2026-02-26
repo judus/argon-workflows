@@ -17,9 +17,10 @@ final readonly class CompositeExecutionObserver implements ExecutionObserverInte
 
     public function __construct(ExecutionObserverInterface ...$observers)
     {
-        $this->observers = $observers;
+        $this->observers = array_values($observers);
     }
 
+    #[\Override]
     public function emit(ExecutionEvent $event): void
     {
         foreach ($this->observers as $observer) {

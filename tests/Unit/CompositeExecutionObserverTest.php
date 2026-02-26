@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace Maduser\Argon\Workflows\Tests\Unit;
 
 use Maduser\Argon\Workflows\CompositeExecutionObserver;
-use Maduser\Argon\Workflows\Contracts\ExecutionObserverInterface;
 use Maduser\Argon\Workflows\ExecutionEvent;
+use Maduser\Argon\Workflows\Tests\Unit\Fixtures\CollectingObserver;
 use PHPUnit\Framework\TestCase;
 
 final class CompositeExecutionObserverTest extends TestCase
@@ -29,16 +29,5 @@ final class CompositeExecutionObserverTest extends TestCase
 
         $this->assertSame([$event], $first->events);
         $this->assertSame([$event], $second->events);
-    }
-}
-
-final class CollectingObserver implements ExecutionObserverInterface
-{
-    /** @var list<ExecutionEvent> */
-    public array $events = [];
-
-    public function emit(ExecutionEvent $event): void
-    {
-        $this->events[] = $event;
     }
 }

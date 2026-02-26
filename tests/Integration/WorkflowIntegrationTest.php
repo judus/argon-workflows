@@ -12,6 +12,7 @@ use Maduser\Argon\Workflows\TransitionResolver;
 use Maduser\Argon\Workflows\WorkflowDefinition;
 use Maduser\Argon\Workflows\WorkflowRegistry;
 use Maduser\Argon\Workflows\WorkflowRunner;
+use Maduser\Argon\Workflows\Tests\Integration\Fixtures\TestContext;
 use PHPUnit\Framework\TestCase;
 
 final class WorkflowIntegrationTest extends TestCase
@@ -21,6 +22,7 @@ final class WorkflowIntegrationTest extends TestCase
         $context = new TestContext('start', ['complete']);
 
         $startHandler = new class implements StateHandlerInterface {
+            #[\Override]
             public function handle(ContextInterface $context): HandlerResult
             {
                 return new HandlerResult($context, ['processSignal' => true]);
@@ -28,6 +30,7 @@ final class WorkflowIntegrationTest extends TestCase
         };
 
         $processHandler = new class implements StateHandlerInterface {
+            #[\Override]
             public function handle(ContextInterface $context): HandlerResult
             {
                 return new HandlerResult($context, []);
@@ -35,6 +38,7 @@ final class WorkflowIntegrationTest extends TestCase
         };
 
         $completeHandler = new class implements StateHandlerInterface {
+            #[\Override]
             public function handle(ContextInterface $context): HandlerResult
             {
                 return new HandlerResult($context, []);
@@ -70,32 +74,5 @@ final class WorkflowIntegrationTest extends TestCase
 
         // Assert final context state
         $this->assertEquals('complete', $actualContext->getState());
-    }
-}
-
-final class TestContext implements ContextInterface
-{
-    /**
-     * @param array<string> $terminalStates
-     */
-    public function __construct(
-        private string $state,
-        private array $terminalStates
-    ) {
-    }
-
-    public function getState(): string
-    {
-        return $this->state;
-    }
-
-    public function isComplete(): bool
-    {
-        return in_array($this->state, $this->terminalStates, true);
-    }
-
-    public function withState(string $state): ContextInterface
-    {
-        return new self($state, $this->terminalStates);
     }
 }
