@@ -24,7 +24,12 @@ final readonly class WorkflowRunner
         private WorkflowRegistry $workflowRegistry,
         private ?LoggerInterface $logger = null,
         ?ExecutionObserverInterface $observer = null,
+        private int $maxSteps = 1000,
     ) {
+        if ($this->maxSteps < 1) {
+            throw WorkflowException::forInvalidMaxSteps($this->maxSteps);
+        }
+
         $this->observer = $observer ?? new NullExecutionObserver();
     }
 
@@ -54,11 +59,17 @@ final readonly class WorkflowRunner
 
         try {
             $workflow = $this->workflowRegistry->get($workflowId);
+            $steps = 0;
 
             while (!$context->isComplete()) {
                 $state = $context->getState();
                 $contextClass = $context::class;
                 $stepStart = microtime(true);
+
+                ++$steps;
+                if ($steps > $this->maxSteps) {
+                    throw WorkflowException::forMaxStepsExceeded($workflowId, $this->maxSteps, $state);
+                }
 
                 $this->log("State {$state}...");
                 $this->emit(

@@ -53,4 +53,17 @@ final class WorkflowException extends RuntimeException
             "expected {$expected}"
         );
     }
+
+    public static function forInvalidMaxSteps(int $maxSteps): self
+    {
+        return new self("Workflow max steps must be greater than zero, {$maxSteps} given");
+    }
+
+    public static function forMaxStepsExceeded(string $workflowId, int $maxSteps, string $state): self
+    {
+        return new self(
+            "Workflow '{$workflowId}' exceeded the configured max step limit of {$maxSteps} " .
+            "while entering state '{$state}'"
+        );
+    }
 }

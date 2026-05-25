@@ -44,4 +44,41 @@ final class WorkflowRunnerTest extends TestCase
 
         $runner->run(new NativeContext('start'));
     }
+
+    public function testThrowsWhenMaxStepsIsInvalid(): void
+    {
+        $registry = new StateHandlerRegistry();
+        $resolver = new TransitionResolver();
+        $workflows = new WorkflowRegistry();
+
+        $this->expectException(WorkflowException::class);
+        $this->expectExceptionMessage('Workflow max steps must be greater than zero, 0 given');
+
+        new WorkflowRunner($registry, $resolver, $workflows, maxSteps: 0);
+    }
+
+    public function testThrowsWhenWorkflowExceedsMaxSteps(): void
+    {
+        $registry = new StateHandlerRegistry();
+        $resolver = new TransitionResolver();
+        $workflows = new WorkflowRegistry();
+        $workflows->add('default', new WorkflowDefinition(['start' => 'start'], []));
+
+        $registry->register('start', new class implements StateHandlerInterface {
+            #[\Override]
+            public function handle(ContextInterface $context): HandlerResult
+            {
+                return new HandlerResult($context, []);
+            }
+        });
+
+        $runner = new WorkflowRunner($registry, $resolver, $workflows, maxSteps: 2);
+
+        $this->expectException(WorkflowException::class);
+        $this->expectExceptionMessage(
+            "Workflow 'default' exceeded the configured max step limit of 2 while entering state 'start'"
+        );
+
+        $runner->run(new NativeContext('start'));
+    }
 }

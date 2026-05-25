@@ -27,11 +27,13 @@
         "test": "vendor/bin/phpunit",
         "lint": "vendor/bin/phpcs --standard=phpcs.xml",
         "analyze": "vendor/bin/psalm --output-format=github",
+        "check:syntax": "find src tests -type f -name '*.php' -print0 | xargs -0 -r -n1 php -l",
         "fix": [
             "vendor/bin/phpcbf --standard=phpcs.xml"
         ],
         "coverage": "vendor/bin/phpunit --coverage-html coverage-report && open coverage-report/index.html",
         "check": [
+            "@check:syntax",
             "@test",
             "@analyze",
             "@lint"

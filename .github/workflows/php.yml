@@ -3,64 +3,89 @@ name: Build
 on:
   push:
     branches:
-      - master
+      - main
       - test
       - dev
     tags:
       - 'v*'
   pull_request:
     branches:
-      - master
+      - main
       - test
       - dev
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.experimental }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - php-version: '8.2'
+            experimental: false
+            composer-options: ''
+          - php-version: '8.3'
+            experimental: false
+            composer-options: ''
+          - php-version: '8.4'
+            experimental: false
+            composer-options: ''
+          - php-version: '8.5'
+            experimental: true
+            composer-options: '--ignore-platform-req=php'
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Setup PHP
-      uses: shivammathur/setup-php@v2
-      with:
-        php-version: '8.2'
-        extensions: mbstring, intl, pdo, pdo_mysql
-        coverage: xdebug
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+          extensions: mbstring, intl
+          coverage: xdebug
 
-    - name: Validate composer.json
-      run: composer validate --strict
+      - name: Validate composer.json
+        run: composer validate --strict
 
-    - name: Cache Composer packages
-      uses: actions/cache@v3
-      with:
-        path: vendor
-        key: ${{ runner.os }}-php-${{ hashFiles('**/composer.lock') }}
-        restore-keys: |
-          ${{ runner.os }}-php-
+      - name: Cache Composer packages
+        uses: actions/cache@v3
+        with:
+          path: vendor
+          key: ${{ runner.os }}-php-${{ matrix.php-version }}-${{ hashFiles('**/composer.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-php-${{ matrix.php-version }}-
 
-    - name: Install dependencies
-      run: composer install --prefer-dist --no-progress --no-suggest
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest ${{ matrix.composer-options }}
 
-    - name: Run PHPUnit with coverage
-      run: vendor/bin/phpunit --coverage-clover=coverage.xml
+      - name: Run syntax checks
+        if: matrix.experimental == false
+        run: composer check:syntax
 
-    - name: Run Psalm
-      run: vendor/bin/psalm --output-format=github --shepherd
+      - name: Run PHPUnit
+        if: matrix.php-version != '8.4'
+        run: vendor/bin/phpunit
 
-    - name: Run PHP_CodeSniffer
-      run: vendor/bin/phpcs --standard=phpcs.xml
+      - name: Run PHPUnit with coverage
+        if: matrix.php-version == '8.4'
+        run: vendor/bin/phpunit --coverage-clover=coverage.xml
 
-    - name: Run PHP CS Fixer (dry-run)
-      run: vendor/bin/php-cs-fixer fix --dry-run --diff --ansi || true
+      - name: Run Psalm
+        if: matrix.experimental == false
+        run: vendor/bin/psalm --output-format=github --shepherd
 
-    - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@v5
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }}
-        slug: judus/argon-workflows
+      - name: Run PHP_CodeSniffer
+        if: matrix.experimental == false
+        run: vendor/bin/phpcs --standard=phpcs.xml
+
+      - name: Upload coverage reports to Codecov
+        if: matrix.php-version == '8.4'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: judus/argon-workflows
